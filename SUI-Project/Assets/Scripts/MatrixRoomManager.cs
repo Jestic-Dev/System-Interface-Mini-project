@@ -4,6 +4,7 @@ using UnityEngine;
 
 public class MatrixRoomManager : MonoBehaviour
 {
+    //Singleton, ensures we are only ever working with the same MatrixRoomManager
     private static MatrixRoomManager instance;
     public static MatrixRoomManager Instance => GetInstance();
     private static MatrixRoomManager GetInstance()
@@ -18,9 +19,9 @@ public class MatrixRoomManager : MonoBehaviour
         return null;
     }
 
+    public EnvironmentMiniature environmentMiniature;
     public GameObject activeRoot;
 
-    // Start is called before the first frame update
     void Start()
     {
         activeRoot.SetActive(false);
@@ -28,8 +29,7 @@ public class MatrixRoomManager : MonoBehaviour
 
     public void ToggleRoom(Vector3 position, Quaternion rotation)
     {
-        Debug.Log("Toggle");
-        Debug.Log(gameObject.name);
+        //Make the Matrix Room appear with the specified position and rotation
         activeRoot.SetActive(!activeRoot.activeSelf);
 
         if (activeRoot.activeSelf)
@@ -37,6 +37,11 @@ public class MatrixRoomManager : MonoBehaviour
             transform.position = position;
             transform.rotation = rotation;
             transform.Translate(Vector3.forward * 3);
+
+            if (environmentMiniature == null)
+                environmentMiniature = GetComponentInChildren<EnvironmentMiniature>();
+
+            environmentMiniature.SetupMiniature();
         }
     }
 }
