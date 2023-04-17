@@ -21,7 +21,7 @@ public class CharacterMovement : MonoBehaviour
         {
             Vector3 roomSpawnPosition = transform.position + new Vector3(0, -characterController.height * 0.5f + 0.001f, 0);
             Quaternion roomSpawnRotation = transform.rotation;
-            MatrixRoomManager.Instance.ToggleRoom(roomSpawnPosition, roomSpawnRotation);
+            MatrixRoomManager.Instance.ToggleRoom();
         }
 
         if (Input.GetKeyDown(KeyCode.Space))

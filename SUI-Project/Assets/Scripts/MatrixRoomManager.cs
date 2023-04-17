@@ -1,6 +1,8 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.XR.CoreUtils;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 public class MatrixRoomManager : MonoBehaviour
 {
@@ -19,29 +21,63 @@ public class MatrixRoomManager : MonoBehaviour
         return null;
     }
 
+    public XROrigin xrOrigin;
+    public Transform playerPositionTracking;
     public EnvironmentMiniature environmentMiniature;
     public GameObject activeRoot;
+    public float forwardOffset;
 
     void Start()
     {
+        if (xrOrigin == null)
+        {
+            xrOrigin = FindObjectOfType<XROrigin>();
+        }
+
+        if (environmentMiniature == null)
+        {
+            if (!activeRoot.activeSelf)
+                activeRoot.SetActive(true);
+
+            environmentMiniature = GetComponentInChildren<EnvironmentMiniature>();
+        }
+
         activeRoot.SetActive(false);
     }
 
-    public void ToggleRoom(Vector3 position, Quaternion rotation)
+    public void ToggleRoom()
     {
-        //Make the Matrix Room appear with the specified position and rotation
-        activeRoot.SetActive(!activeRoot.activeSelf);
-
+        //If the Matrix room is active, ask if the player has been moved before turning it off
         if (activeRoot.activeSelf)
         {
-            transform.position = position;
-            transform.rotation = rotation;
-            transform.Translate(Vector3.forward * 3);
+            Debug.Log("Test if player was moved");
+            if(environmentMiniature.WasFigureMoved())
+            {
+                Debug.Log("Was moved");
+                Vector3 scaledPos = environmentMiniature.GetScaledPosition();
+                Vector3 camOffset = xrOrigin.transform.position - Camera.main.transform.position;
+                
+                Debug.Log(xrOrigin.transform.position);
+                xrOrigin.transform.position = scaledPos;// + new Vector3(camOffset.x, 0, camOffset.z);
+                Debug.Log(xrOrigin.transform.position);
+            }
 
-            if (environmentMiniature == null)
-                environmentMiniature = GetComponentInChildren<EnvironmentMiniature>();
+            activeRoot.SetActive(false);
+        }
+        else
+        {
+            //Make the Matrix Room appear with the specified position and rotation
+            activeRoot.SetActive(true);
 
-            environmentMiniature.SetupMiniature();
+            Transform playerHead = Camera.main.transform;
+            Vector3 groundedPlayerPos = playerHead.position - new Vector3(0, playerPositionTracking.localPosition.y, 0);
+            Quaternion flattenedPlayerRot = new Quaternion(0, playerHead.rotation.y, 0, playerHead.rotation.w);
+
+            activeRoot.transform.position = groundedPlayerPos + new Vector3(0, 0.1f, 0);
+            activeRoot.transform.rotation = flattenedPlayerRot;
+            activeRoot.transform.Translate(Vector3.forward * forwardOffset);
+
+            environmentMiniature.SetupMiniature(groundedPlayerPos, flattenedPlayerRot);
         }
     }
 }
