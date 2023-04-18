@@ -21,6 +21,8 @@ public class MatrixRoomManager : MonoBehaviour
         return null;
     }
 
+    public MatrixRoomFader matrixFader;
+    public MatrixRoomAnimator matrixAnimator;
     public XROrigin xrOrigin;
     public Transform playerPositionTracking;
     public EnvironmentMiniature environmentMiniature;
@@ -45,24 +47,29 @@ public class MatrixRoomManager : MonoBehaviour
         activeRoot.SetActive(false);
     }
 
+    public bool CanToggleRoom()
+    {
+        return matrixAnimator.IsNotAnimating();
+    }
+
     public void ToggleRoom()
     {
-        //If the Matrix room is active, ask if the player has been moved before turning it off
-        if (activeRoot.activeSelf)
-        {
-            Debug.Log("Test if player was moved");
-            if(environmentMiniature.WasFigureMoved())
-            {
-                Debug.Log("Was moved");
-                Vector3 scaledPos = environmentMiniature.GetScaledPosition();
-                Vector3 camOffset = xrOrigin.transform.position - Camera.main.transform.position;
-                
-                Debug.Log(xrOrigin.transform.position);
-                xrOrigin.transform.position = scaledPos;// + new Vector3(camOffset.x, 0, camOffset.z);
-                Debug.Log(xrOrigin.transform.position);
-            }
+        if (environmentMiniature.IsGrabbingFigure)
+            return;
 
-            activeRoot.SetActive(false);
+        //If the Matrix room is active, ask if the player has been moved before turning it off
+        if (environmentMiniature.IsOpen)
+        {
+            if (environmentMiniature.WasFigureMoved())
+            {
+                RelocatePlayer();
+            }
+            else
+            {
+                matrixFader.UnfadeEnvironment();
+            }
+            matrixAnimator.DespawnRoom();
+            environmentMiniature.StartClosing();
         }
         else
         {
@@ -78,6 +85,19 @@ public class MatrixRoomManager : MonoBehaviour
             activeRoot.transform.Translate(Vector3.forward * forwardOffset);
 
             environmentMiniature.SetupMiniature(groundedPlayerPos, flattenedPlayerRot);
+
+            matrixAnimator.SpawnRoom(playerHead.position);
+            matrixFader.FadeEnvironment();
         }
+    }
+
+    public void RelocatePlayer()
+    {
+        Debug.Log("Was moved");
+        Vector3 scaledPos = environmentMiniature.GetScaledPosition();
+        Vector3 camOffset = xrOrigin.transform.position - Camera.main.transform.position;
+        Vector3 newOriginPos = scaledPos + new Vector3(camOffset.x, 0, camOffset.z);
+
+        matrixFader.FadeTeleport(xrOrigin.transform, newOriginPos);
     }
 }

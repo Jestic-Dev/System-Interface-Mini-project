@@ -37,17 +37,20 @@ public class CustomPlayerInput : MonoBehaviour
             (leftHandMatrixOpener.action.ReadValue<float>() == 1 ||
             rightHandMatrixOpener.action.ReadValue<float>() == 1))
         {
-            matrixRoom.ToggleRoom();
-            SwapInputState();
-            openerLock = true;
+            if (matrixRoom.CanToggleRoom())
+            {
+                matrixRoom.ToggleRoom();
+                SwapInputState();
+                openerLock = true;
+            }
         }
 
         if (openerLock == true &&
-            leftHandMatrixOpener.action.ReadValue<float>() == 0 &&
-            rightHandMatrixOpener.action.ReadValue<float>() == 0)
-        {
-            openerLock = false;
-        }
+                leftHandMatrixOpener.action.ReadValue<float>() == 0 &&
+                rightHandMatrixOpener.action.ReadValue<float>() == 0)
+            {
+                openerLock = false;
+            }
     }
 
     private void SwapInputState()

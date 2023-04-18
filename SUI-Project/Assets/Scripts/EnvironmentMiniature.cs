@@ -1,11 +1,15 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.XR.Interaction.Toolkit;
 
 public class EnvironmentMiniature : MonoBehaviour
 {
     public GameObject environmentRoot;
+    public Transform miniatureRoot;
+
     public Transform miniaturePlayer;
     private Transform miniatureEnvironment;
 
@@ -17,6 +21,7 @@ public class EnvironmentMiniature : MonoBehaviour
     private Vector3 storedFigurePos;
     private Quaternion storedFigureRot;
 
+    public bool IsGrabbingFigure { get { return isGrabbingFigure; } }
     private bool isGrabbingFigure = false;
     private Vector3 figurePlacementPoint;
     public Transform figureTeleportMarker;
@@ -24,6 +29,10 @@ public class EnvironmentMiniature : MonoBehaviour
     public LineRenderer figurePlacementLaser;
     public Color canPlaceColor;
     public Color cannotPlaceColor;
+
+    public bool IsOpen { get { return isOpen; } }
+    [SerializeField]
+    private bool isOpen = false;
 
     void Start()
     {
@@ -37,7 +46,12 @@ public class EnvironmentMiniature : MonoBehaviour
         {
             //Create the miniature environment
             miniatureEnvironment = Instantiate(environmentRoot).transform;
-            miniatureEnvironment.SetParent(transform);
+            miniatureEnvironment.SetParent(miniatureRoot);
+            foreach(Transform obj in miniatureEnvironment.GetComponentInChildren<Transform>(includeInactive: true))
+            {
+                obj.gameObject.layer = gameObject.layer;
+            }
+            miniatureEnvironment.gameObject.layer = gameObject.layer;
         }
 
         if(figurineInteractable == null)
@@ -45,37 +59,44 @@ public class EnvironmentMiniature : MonoBehaviour
             figurineInteractable = miniaturePlayer.GetComponent<XRGrabInteractable>();
         }
 
-        //Set transform values for the miniature environment
-        miniatureEnvironment.position = transform.position;
-        miniatureEnvironment.rotation = transform.rotation;
-        miniatureEnvironment.localScale = new Vector3(scaleFactor, scaleFactor, scaleFactor);
-
-        //Use the position of the player relative to the environment to calculate position difference for the miniature player figure
-        Vector3 playerRelativePosition = playerPos - environmentRoot.transform.position;
-        playerRelativePosition *= scaleFactor;
-
-        //Set transform values for the miniature player figure
-        miniaturePlayer.position = miniatureEnvironment.position + playerRelativePosition;
-        miniaturePlayer.RotateAround(transform.position, Vector3.up, miniatureEnvironment.rotation.eulerAngles.y);
-        miniaturePlayer.rotation = playerRot * miniatureEnvironment.rotation;
-        miniaturePlayer.localScale = new Vector3(scaleFactor * 2, scaleFactor * 2, scaleFactor * 2);
-
-        initialFigurePos = miniaturePlayer.position;
-
-        figurineInteractable.selectEntered.AddListener(Test1);
-        figurineInteractable.selectExited.AddListener(Test2);
-    }
-
-    private void OnDisable()
-    {
-        if (figurineInteractable != null)
+        if (!IsOpen)
         {
-            figurineInteractable.selectEntered.RemoveListener(Test1);
-            figurineInteractable.selectExited.RemoveListener(Test2);
+            //Set transform values for the miniature environment
+            miniatureEnvironment.position = miniatureRoot.transform.position;
+            miniatureEnvironment.rotation = miniatureRoot.transform.rotation;
+            miniatureEnvironment.localScale = new Vector3(scaleFactor, scaleFactor, scaleFactor);
+
+            //Use the position of the player relative to the environment to calculate position difference for the miniature player figure
+            Vector3 playerRelativePosition = playerPos - environmentRoot.transform.position;
+            playerRelativePosition *= scaleFactor;
+
+            //Set transform values for the miniature player figure
+            miniaturePlayer.position = miniatureEnvironment.position + playerRelativePosition;
+            miniaturePlayer.RotateAround(miniatureRoot.transform.position, Vector3.up, miniatureEnvironment.rotation.eulerAngles.y);
+            miniaturePlayer.rotation = playerRot * miniatureEnvironment.rotation;
+            miniaturePlayer.localScale = new Vector3(scaleFactor * 2, scaleFactor * 2, scaleFactor * 2);
+
+            initialFigurePos = miniaturePlayer.localPosition;
+
+            figurineInteractable.enabled = true;
+            figurineInteractable.selectEntered.AddListener(GrabFigure);
+            figurineInteractable.selectExited.AddListener(ReleaseFigure);
+
+            isOpen = true;
         }
     }
 
-    public void Test1(SelectEnterEventArgs a)
+    public void StartClosing()
+    {
+        figurineInteractable.enabled = false;
+
+        figurineInteractable.selectEntered.RemoveListener(GrabFigure);
+        figurineInteractable.selectExited.RemoveListener(ReleaseFigure);
+
+        isOpen = false;
+    }
+
+    public void GrabFigure(SelectEnterEventArgs a)
     {
         isGrabbingFigure = true;
 
@@ -87,7 +108,7 @@ public class EnvironmentMiniature : MonoBehaviour
         StartCoroutine(FigureRaycastRoutine());
     }
 
-    public void Test2(SelectExitEventArgs a)
+    public void ReleaseFigure(SelectExitEventArgs a)
     {
         isGrabbingFigure = false;
 
@@ -95,6 +116,7 @@ public class EnvironmentMiniature : MonoBehaviour
         {
             figurineInteractable.transform.position = figurePlacementPoint;
             figurineInteractable.transform.rotation = storedFigureRot;
+            figureTeleportMarker.gameObject.SetActive(false);
         }
         else
         {
@@ -106,7 +128,7 @@ public class EnvironmentMiniature : MonoBehaviour
 
     public bool WasFigureMoved()
     {
-        return initialFigurePos != figurineInteractable.transform.position;
+        return initialFigurePos != figurineInteractable.transform.localPosition;
     }
 
     public Vector3 GetScaledPosition()
