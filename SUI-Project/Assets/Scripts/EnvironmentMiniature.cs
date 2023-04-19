@@ -11,6 +11,7 @@ public class EnvironmentMiniature : MonoBehaviour
     public Transform miniatureRoot;
 
     public Transform miniaturePlayer;
+    public Vector3 figureScale;
     private Transform miniatureEnvironment;
 
     public float scaleFactor;
@@ -27,6 +28,7 @@ public class EnvironmentMiniature : MonoBehaviour
     public Transform figureTeleportMarker;
 
     public LineRenderer figurePlacementLaser;
+    public LayerMask laserLayerMask;
     public Color canPlaceColor;
     public Color cannotPlaceColor;
 
@@ -47,11 +49,8 @@ public class EnvironmentMiniature : MonoBehaviour
             //Create the miniature environment
             miniatureEnvironment = Instantiate(environmentRoot).transform;
             miniatureEnvironment.SetParent(miniatureRoot);
-            foreach(Transform obj in miniatureEnvironment.GetComponentInChildren<Transform>(includeInactive: true))
-            {
-                obj.gameObject.layer = gameObject.layer;
-            }
-            miniatureEnvironment.gameObject.layer = gameObject.layer;
+
+            SetLayer(miniatureEnvironment.gameObject);
         }
 
         if(figurineInteractable == null)
@@ -74,7 +73,7 @@ public class EnvironmentMiniature : MonoBehaviour
             miniaturePlayer.position = miniatureEnvironment.position + playerRelativePosition;
             miniaturePlayer.RotateAround(miniatureRoot.transform.position, Vector3.up, miniatureEnvironment.rotation.eulerAngles.y);
             miniaturePlayer.rotation = playerRot * miniatureEnvironment.rotation;
-            miniaturePlayer.localScale = new Vector3(scaleFactor * 2, scaleFactor * 2, scaleFactor * 2);
+            miniaturePlayer.localScale = figureScale;
 
             initialFigurePos = miniaturePlayer.localPosition;
 
@@ -83,6 +82,19 @@ public class EnvironmentMiniature : MonoBehaviour
             figurineInteractable.selectExited.AddListener(ReleaseFigure);
 
             isOpen = true;
+        }
+    }
+
+    private void SetLayer(GameObject go)
+    {
+        go.layer = gameObject.layer;
+
+        foreach (Transform obj in go.GetComponentsInChildren<Transform>(includeInactive: true))
+        {
+            if (obj.gameObject != go)
+            {
+                SetLayer(obj.gameObject);
+            }
         }
     }
 
@@ -146,7 +158,7 @@ public class EnvironmentMiniature : MonoBehaviour
         {
             RaycastHit raycastHit;
 
-            if (Physics.Raycast(figurineInteractable.transform.position, Vector3.down, out raycastHit, 10))
+            if (Physics.Raycast(figurineInteractable.transform.position, Vector3.down, out raycastHit, 10, laserLayerMask))
             {
                 figurePlacementPoint = raycastHit.point;
 

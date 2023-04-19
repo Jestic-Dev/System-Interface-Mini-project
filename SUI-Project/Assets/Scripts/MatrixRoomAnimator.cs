@@ -73,8 +73,6 @@ public class MatrixRoomAnimator : MonoBehaviour
             matrixTable.position = new Vector3(matrixTable.position.x, newYpos, matrixTable.position.z);
             scalingValue += Time.deltaTime / scaleRateTable;
             yield return null;
-            Debug.Log("Moving table");
-            Debug.Log(matrixTable.position.y + " : " + targetHeight + " : " + scalingValue);
         }
 
         Debug.Log("Setting coroutine to null");
